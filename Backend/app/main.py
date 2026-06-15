@@ -2,9 +2,13 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 import uuid
 import json
+import os
 from app.graph import run_pipeline
+from app.nodes import audio_outputs, video_outputs
 from app.pipeline_state import pipeline_paused_jobs, pipeline_decisions
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 
 app = FastAPI(title="Content Factory API")
 
@@ -33,6 +37,11 @@ class JobStatus(BaseModel):
     job_id: str
     status: str
     result: dict |None=None
+
+output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "output")
+app.mount("/audio", StaticFiles(directory=audio_outputs), name="audio")
+app.mount("/audio", StaticFiles(directory=audio_outputs), name="audio")
+app.mount("/video", StaticFiles(directory=video_outputs), name="video")
 
 @app.post("/generate", response_model=JobStatus)
 async def generate_content(request: PipelineRequest, background_tasks: BackgroundTasks):

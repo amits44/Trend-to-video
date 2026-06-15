@@ -177,7 +177,7 @@ def _create_fallback_image(topic:str)-> str:
     """create black image with topic name"""
     image_path = os.path.join(image_outputs, f"fallback_{topic.replace(' ', '_')}.png")
     result = subprocess.run([
-        "ffmpeg", "-y",
+        "ffmpeg", "-y", "-nostdin",
         "-f", "lavfi",
         "-i", f"color=c=black:size=1280x720:rate=1",
         "-vframes", "1",
@@ -197,7 +197,7 @@ def _combine_to_video(image_path:str, audio_path:str, topic:str)-> str:
 
     video_path = os.path.join(video_outputs, f"{topic.replace(' ', '_')}.mp4")
     result = subprocess.run([
-        "ffmpeg", "-y",
+        "ffmpeg", "-y","-nostdin",
         "-loop", "1",           
         "-i", image_path,       
         "-i", audio_path,       
