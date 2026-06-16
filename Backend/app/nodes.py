@@ -183,7 +183,7 @@ def _create_fallback_image(topic:str)-> str:
     result = subprocess.run([
         "ffmpeg", "-y", "-nostdin",
         "-f", "lavfi",
-        "-i", f"color=c=black:size=1280x720:rate=1",
+        "-i", f"color=c=black:size=720x1280:rate=1",
         "-vframes", "1",
         "-update", "1",
         image_path
@@ -207,11 +207,13 @@ def _combine_to_video(image_path:str, audio_path:str, topic:str)-> str:
         "-i", audio_path,       
         "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
         "-c:v", "libx264",      
+        "-preset", "ultrafast",
         "-tune", "stillimage",  
         "-c:a", "aac",          
-        "-b:a", "192k",
+        "-b:a", "128k",
         "-pix_fmt", "yuv420p",
         "-shortest",
+        "-threads", "1",
         video_path
     ], capture_output=True, check=True)
     if result.returncode != 0:
