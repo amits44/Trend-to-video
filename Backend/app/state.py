@@ -13,6 +13,9 @@ class ContentState(TypedDict):
     image_path: str
     video_path: str
     human_approved: bool
+    published: bool
+    video_url: str
+    publish_error: str
     rejection_reason: str
     iteration_count: int
 

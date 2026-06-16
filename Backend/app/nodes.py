@@ -10,6 +10,10 @@ import json
 from dotenv import load_dotenv
 from app.prompts import get_trend_researcher_prompt
 from app.pipeline_state import pipeline_paused_jobs, pipeline_decisions
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import json as json_lib
 load_dotenv()
 client = Groq()
 
@@ -201,7 +205,7 @@ def _combine_to_video(image_path:str, audio_path:str, topic:str)-> str:
         "-loop", "1",           
         "-i", image_path,       
         "-i", audio_path,       
-        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
         "-c:v", "libx264",      
         "-tune", "stillimage",  
         "-c:a", "aac",          
@@ -211,7 +215,7 @@ def _combine_to_video(image_path:str, audio_path:str, topic:str)-> str:
         video_path
     ], capture_output=True, check=True)
     if result.returncode != 0:
-        print(f"[Video Generator] combine error: {result.stderr.decode()[-200:]}")
+        print(f"[Video Generator] combine error: {result.stderr.decode()[-300:]}")
         return ""
     return video_path
 
@@ -268,9 +272,72 @@ def human_approval_node(state: ContentState) -> ContentState:
             "iteration_count": state["iteration_count"] + 1
         }
 
-def publisher_node(state: ContentState) -> ContentState:
-    """Publishes the approved content"""
+def _get_youtube_client():
+    """Load credentials from env var (Render) or local file (dev)"""
+    token_json = os.getenv("YOUTUBE_TOKEN_JSON")
+    if token_json:
+        creds_data = json_lib.loads(token_json)
+    else:
+        with open("token.json", "r") as f:
+            creds_data = json_lib.load(f)
+
+    creds = Credentials.from_authorized_user_info(
+        creds_data,
+        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    )
+    return build("youtube", "v3", credentials=creds)
+
+def _upload_to_youtube(video_path: str, topic: str, hook: str) -> dict:
+    """Uploads video to YouTube as a Short, returns video_id and url"""
+    try:
+        youtube = _get_youtube_client()
+
+        body = {
+            "snippet": {
+                "title": f"{topic} #Shorts"[:100],
+                "description": f"{hook}\n\n{topic}",
+                "tags": [topic],
+                "categoryId": "22" 
+            },
+            "status": {
+                "privacyStatus": "private",  
+                "selfDeclaredMadeForKids": False
+            }
+        }
+
+        media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
+
+        request = youtube.videos().insert(
+            part="snippet,status",
+            body=body,
+            media_body=media
+        )
+
+        response = request.execute()
+        video_id = response["id"]
+
+        return {
+            "success": True,
+            "video_id": video_id,
+            "url": f"https://youtube.com/shorts/{video_id}"
+        }
+
+    except Exception as e:
+        print(f"[Publisher] YouTube upload failed: {e}")
+        return {"success": False, "error": str(e)}
+
+def publisher_node(state: ContentState) -> dict:
     print(f"\n[Publisher] Publishing: {state['topic']}")
-    print(f"Hook: {state['hook']}")
-    print("[Publisher] Successfully published! (mock)")
-    return state
+    
+    if not state.get("video_path") or not os.path.exists(state["video_path"]):
+        print("[Publisher] No valid video file, skipping upload")
+        return {"published": False, "publish_error": "no video file"}
+
+    result = _upload_to_youtube(state["video_path"], state["topic"], state["hook"])
+
+    if result["success"]:
+        print(f"[Publisher] Published: {result['url']}")
+        return {"published": True, "video_url": result["url"]}
+    else:
+        print(f"[Publisher] Failed: {result['error']}")
+        return {"published": False, "publish_error": result["error"]}
