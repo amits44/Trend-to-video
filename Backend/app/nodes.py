@@ -13,6 +13,7 @@ from app.pipeline_state import pipeline_paused_jobs, pipeline_decisions
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from app.db import SessionLocal, PublishedVideo
 import json as json_lib
 load_dotenv()
 client = Groq()
@@ -336,9 +337,31 @@ def publisher_node(state: ContentState) -> dict:
         return {"published": False, "publish_error": "no video file"}
 
     result = _upload_to_youtube(state["video_path"], state["topic"], state["hook"])
+    print(f"[Publisher] Upload result: {result}")
 
     if result["success"]:
         print(f"[Publisher] Published: {result['url']}")
+
+        db = SessionLocal()
+        print(f"[Publisher] DB session created")
+        try:
+            video_record = PublishedVideo(
+                job_id=state["job_id"],
+                topic=state["topic"],
+                hook=state["hook"],
+                youtube_video_id=result["video_id"],
+                youtube_url=result["url"]
+            )
+            db.add(video_record)
+            print(f"[Publisher] Record added, committing...")
+            db.commit()
+            print(f"[Publisher] Saved to database")
+        except Exception as e:
+            print(f"[Publisher] DB save failed: {e}")
+            db.rollback()
+        finally:
+            db.close()
+        
         return {"published": True, "video_url": result["url"]}
     else:
         print(f"[Publisher] Failed: {result['error']}")
