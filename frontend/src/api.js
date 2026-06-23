@@ -22,3 +22,13 @@ export async function submitApproval(jobId, action, reason = '') {
   })
   return res.json()
 }
+
+export async function getVideos() {
+  const res = await fetch('/api/videos')
+  return res.json()
+}
+
+export async function refreshStats(youtubeVideoId) {
+  const res = await fetch(`/api/videos/${youtubeVideoId}/refresh`, { method: 'POST' })
+  return res.json()
+}

@@ -1,11 +1,12 @@
 import {useState, useEffect, useRef} from "react"
-import {startPipeline, getStatus, submitApproval } from "./api"
+import { startPipeline, getStatus, submitApproval, getVideos, refreshStats } from "./api"
 
 const SCREENS={
   START: "start",
   RUNNING: "running",
   REVIEW: "review",
-  DONE: "done"  
+  DONE: "done",
+  DASHBOARD: "dashboard"
 }
 export default function App(){
   const[screen, setScreen]= useState(SCREENS.START)
@@ -14,6 +15,8 @@ export default function App(){
   const[jobId, setJobId]= useState(null)
   const[result, setResult]= useState(null)
   const[error, setError]= useState(null)
+  const [videos, setVideos] = useState([])
+  const [loadingStats, setLoadingStats] = useState({})
   const [pendingReview, setPendingReview] = useState(null)
   const [showRejectInput, setShowRejectInput] = useState(false)
   const [rejectType, setRejectType] = useState(null)
@@ -89,6 +92,24 @@ export default function App(){
     setRejectType(type)
     setShowRejectInput(true)
   }
+
+  async function loadDashboard() {
+    const data = await getVideos()
+    setVideos(data)
+    setScreen(SCREENS.DASHBOARD)
+  }
+
+  async function handleRefreshStats(youtubeVideoId) {
+    setLoadingStats(prev => ({ ...prev, [youtubeVideoId]: true }))
+    const updated = await refreshStats(youtubeVideoId)
+    setVideos(prev => prev.map(v =>
+      v.youtube_video_id === youtubeVideoId
+        ? { ...v, ...updated }
+        : v
+    ))
+    setLoadingStats(prev => ({ ...prev, [youtubeVideoId]: false }))
+  }
+
   if (screen === SCREENS.START) return (
     <div style={styles.container}>
       <h1 style={styles.title}>Trend to Video</h1>
@@ -103,6 +124,9 @@ export default function App(){
       />
       <button style={styles.primaryBtn} onClick={handleStart}>
         Generate
+      </button>
+      <button style={styles.secondaryBtn} onClick={loadDashboard}>
+        View Published Videos
       </button>
     </div>
   )
@@ -216,6 +240,68 @@ export default function App(){
         Generate Another
       </button>
     </div>
+  )
+
+  if (screen === SCREENS.DASHBOARD) return (
+  <div style={{ ...styles.container, maxWidth: 800 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+      <h2 style={styles.title}>Published Videos</h2>
+      <button style={styles.secondaryBtn} onClick={() => setScreen(SCREENS.START)}>
+        ← Back
+      </button>
+    </div>
+
+    {videos.length === 0 && (
+      <p style={styles.subtitle}>No videos published yet.</p>
+    )}
+
+    {videos.map(v => (
+      <div key={v.id} style={{ ...styles.card, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <p style={{ ...styles.value, fontWeight: 600, marginBottom: 4 }}>{v.topic}</p>
+            <p style={{ ...styles.muted, marginBottom: 8 }}>{v.hook}</p>
+            <a href={v.youtube_url} target="_blank" rel="noreferrer"
+              style={{ color: "#2563eb", fontSize: "0.875rem" }}>
+              Watch on YouTube ↗
+            </a>
+          </div>
+          <button
+            style={styles.secondaryBtn}
+            onClick={() => handleRefreshStats(v.youtube_video_id)}
+            disabled={loadingStats[v.youtube_video_id]}
+          >
+            {loadingStats[v.youtube_video_id] ? "..." : "Refresh Stats"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: "2rem", marginTop: "1rem" }}>
+          <div>
+            <p style={styles.label}>Views</p>
+            <p style={{ ...styles.value, fontSize: "1.5rem", fontWeight: 700 }}>{v.view_count ?? "—"}</p>
+          </div>
+          <div>
+            <p style={styles.label}>Likes</p>
+            <p style={{ ...styles.value, fontSize: "1.5rem", fontWeight: 700 }}>{v.like_count ?? "—"}</p>
+          </div>
+          <div>
+            <p style={styles.label}>Comments</p>
+            <p style={{ ...styles.value, fontSize: "1.5rem", fontWeight: 700 }}>{v.comment_count ?? "—"}</p>
+          </div>
+          <div>
+            <p style={styles.label}>Published</p>
+            <p style={styles.muted}>{new Date(v.published_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        {v.last_checked_at && (
+          <p style={{ ...styles.muted, marginTop: 8, fontSize: "0.75rem" }}>
+            Stats last updated: {new Date(v.last_checked_at).toLocaleString()}
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
   )
 }
 
