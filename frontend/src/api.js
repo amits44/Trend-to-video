@@ -25,6 +25,7 @@ export async function submitApproval(jobId, action, reason = '') {
 
 export async function getVideos() {
   const res = await fetch('/api/videos')
+  if (!res.ok) throw new Error(`Failed to fetch videos: ${res.status}`)
   return res.json()
 }
 

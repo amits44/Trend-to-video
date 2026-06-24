@@ -94,9 +94,13 @@ export default function App(){
   }
 
   async function loadDashboard() {
-    const data = await getVideos()
-    setVideos(data)
-    setScreen(SCREENS.DASHBOARD)
+    try {
+      const data = await getVideos()
+      setVideos(data)
+      setScreen(SCREENS.DASHBOARD)
+    } catch (e) {
+      setError("Failed to load dashboard. Try again.")
+    }
   }
 
   async function handleRefreshStats(youtubeVideoId) {
