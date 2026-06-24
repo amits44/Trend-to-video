@@ -162,6 +162,21 @@ async def refresh_stats(video_id: str):
     finally:
         db.close()
 
+@app.delete("/videos/{video_id}")
+async def delete_video(video_id: str):
+    db = SessionLocal()
+    try:
+        video = db.query(PublishedVideo).filter(
+            PublishedVideo.youtube_video_id == video_id
+        ).first()
+        if not video:
+            raise HTTPException(status_code=404, detail="Not found")
+        db.delete(video)
+        db.commit()
+        return {"deleted": True}
+    finally:
+        db.close()
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}

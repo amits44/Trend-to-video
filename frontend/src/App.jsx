@@ -1,5 +1,5 @@
 import {useState, useEffect, useRef} from "react"
-import { startPipeline, getStatus, submitApproval, getVideos, refreshStats } from "./api"
+import { startPipeline, getStatus, submitApproval, getVideos, refreshStats, deleteVideo } from "./api"
 
 const SCREENS={
   START: "start",
@@ -281,6 +281,15 @@ export default function App(){
             disabled={loadingStats[v.youtube_video_id]}
           >
             {loadingStats[v.youtube_video_id] ? "..." : "Refresh Stats"}
+          </button>
+          <button
+            style={{ ...styles.dangerBtn, padding: "0.5rem 1rem", fontSize: "0.875rem" }}
+            onClick={async () => {
+              await deleteVideo(v.youtube_video_id)
+              setVideos(prev => prev.filter(vid => vid.youtube_video_id !== v.youtube_video_id))
+            }}
+          >
+            Remove
           </button>
         </div>
 

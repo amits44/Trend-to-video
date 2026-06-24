@@ -37,3 +37,9 @@ export async function refreshStats(youtubeVideoId) {
   }
   return res.json()
 }
+
+export async function deleteVideo(youtubeVideoId) {
+  const res = await fetch(`/api/videos/${youtubeVideoId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error("Failed to delete")
+  return res.json()
+}
