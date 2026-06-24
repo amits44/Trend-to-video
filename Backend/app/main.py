@@ -4,7 +4,7 @@ import uuid
 import json
 import os
 from app.graph import run_pipeline
-from app.nodes import audio_outputs, video_outputs
+from app.nodes import audio_outputs, video_outputs, _get_youtube_client
 from app.pipeline_state import pipeline_paused_jobs, pipeline_decisions
 from app.db import init_db, SessionLocal, PublishedVideo
 from googleapiclient.discovery import build as google_build
