@@ -128,32 +128,37 @@ async def refresh_stats(video_id: str):
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
         
-        youtube = _get_youtube_client()
-        response = youtube.videos().list(
-            part="statistics",
-            id=video_id
-        ).execute()
+        try:
+            youtube = _get_youtube_client()
+            response = youtube.videos().list(
+                part="statistics",
+                id=video_id
+            ).execute()
         
-        items = response.get("items", [])
-        if not items:
-            raise HTTPException(status_code=404, detail="Video not found on YouTube")
-        
-        stats = items[0]["statistics"]
-        
-        video.view_count = int(stats.get("viewCount", 0))
-        video.like_count = int(stats.get("likeCount", 0))
-        video.comment_count = int(stats.get("commentCount", 0))
-        video.last_checked_at = datetime.utcnow()
-        
-        db.commit()
-        
-        return {
-            "video_id": video_id,
-            "view_count": video.view_count,
-            "like_count": video.like_count,
-            "comment_count": video.comment_count,
-            "last_checked_at": video.last_checked_at.isoformat()
-        }
+            items = response.get("items", [])
+            if not items:
+                raise HTTPException(status_code=404, detail="Video not found on YouTube")
+
+            stats = items[0]["statistics"]
+
+            video.view_count = int(stats.get("viewCount", 0))
+            video.like_count = int(stats.get("likeCount", 0))
+            video.comment_count = int(stats.get("commentCount", 0))
+            video.last_checked_at = datetime.utcnow()
+
+            db.commit()
+
+            return {
+                "video_id": video_id,
+                "view_count": video.view_count,
+                "like_count": video.like_count,
+                "comment_count": video.comment_count,
+                "last_checked_at": video.last_checked_at.isoformat()
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"YouTube API error: {str(e)}")
     finally:
         db.close()
 

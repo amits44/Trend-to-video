@@ -105,13 +105,18 @@ export default function App(){
 
   async function handleRefreshStats(youtubeVideoId) {
     setLoadingStats(prev => ({ ...prev, [youtubeVideoId]: true }))
-    const updated = await refreshStats(youtubeVideoId)
-    setVideos(prev => prev.map(v =>
-      v.youtube_video_id === youtubeVideoId
-        ? { ...v, ...updated }
-        : v
-    ))
-    setLoadingStats(prev => ({ ...prev, [youtubeVideoId]: false }))
+    try{
+      const updated = await refreshStats(youtubeVideoId)
+      setVideos(prev => prev.map(v =>
+        v.youtube_video_id === youtubeVideoId
+          ? { ...v, ...updated }
+          : v
+      ))
+    } catch (e) {
+      alert(e.message)
+    } finally{
+      setLoadingStats(prev => ({ ...prev, [youtubeVideoId]: false }))
+    }
   }
 
   if (screen === SCREENS.START) return (

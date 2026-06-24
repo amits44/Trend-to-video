@@ -31,5 +31,9 @@ export async function getVideos() {
 
 export async function refreshStats(youtubeVideoId) {
   const res = await fetch(`/api/videos/${youtubeVideoId}/refresh`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Unknown error" }))
+    throw new Error(err.detail || "Failed to refresh stats")
+  }
   return res.json()
 }
