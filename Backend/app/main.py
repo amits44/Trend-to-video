@@ -20,6 +20,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:4173",
         "https://content-factory-p77l.onrender.com",
+        "https://trend-to-video.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
