@@ -31,7 +31,6 @@ export default function App() {
     setError(null)
     setScreen(SCREENS.RUNNING)
     try {
-      await fetch('/api/health').catch(() => {})
       const data = await startPipeline(niche)
       setJobId(data.job_id)
     } catch (e) {
@@ -203,14 +202,14 @@ export default function App() {
         {pendingReview?.audio_path && (
           <div style={s.mediaCard}>
             <p style={s.cardEyebrow}>Audio</p>
-            <audio controls src={`/api/audio/${pendingReview.audio_path.split('/').pop()}`} style={{ width: "100%", marginTop: 8 }} />
+            <audio controls src={`https://content-factory-p77l.onrender.com/audio/${pendingReview.audio_path.split('/').pop()}`} style={{ width: "100%", marginTop: 8 }} />
           </div>
         )}
 
         {pendingReview?.video_path && (
           <div style={s.mediaCard}>
             <p style={s.cardEyebrow}>Video preview</p>
-            <video controls src={`/api/video/${pendingReview.video_path.split('/').pop()}`} style={{ width: "100%", borderRadius: 8, marginTop: 8 }} />
+            <video controls src={`https://content-factory-p77l.onrender.com/video/${pendingReview.video_path.split('/').pop()}`} style={{ width: "100%", borderRadius: 8, marginTop: 8 }} />
           </div>
         )}
 
